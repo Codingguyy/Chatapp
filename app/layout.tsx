@@ -30,7 +30,6 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body
         className="relative max-w-9xl flex flex-col items-center justify-start no-scrollbar bg-[#0a0a0a]" style={{fontFamily:"'Robotomono',monospace"}}>
-           <Floatingnavbar/>
            <div className="w-full pt-14">
              {children}
            </div>
