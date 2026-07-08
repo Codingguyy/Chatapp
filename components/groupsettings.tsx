@@ -51,6 +51,9 @@ export default function Groupsettings() {
   function handleblockmember(memberId: string, action: "block" | "unblock") {
     set("request:block:group", { token: token, groupId: group.groupId, memberId: memberId, action: action })
   }
+  function handlekickmember(memberId: string) {
+    set("request:kickmember:group", { token: token, groupId: group.groupId, memberId: memberId })
+  }
 
   return (
     <div className="h-full w-full flex flex-col bg-[#0a0a0a] overflow-y-auto">
@@ -192,9 +195,14 @@ export default function Groupsettings() {
                           <ShieldBan size={12} /> Block member
                         </button>
                       )}
-                      <button className="w-full text-left text-xs text-red-400 hover:text-red-300 px-2 py-1.5 rounded-md hover:bg-red-500/10 transition-colors">
-                        Kick member
-                      </button>
+                      {group.createdBy !== data.id && (
+                        <button
+                          className="w-full text-left text-xs text-red-400 hover:text-red-300 px-2 py-1.5 rounded-md hover:bg-red-500/10 transition-colors"
+                          onClick={(e) => { e.stopPropagation(); handlekickmember(data.id) }}
+                        >
+                          Kick member
+                        </button>
+                      )}
                     </PopoverContent>
                   </Popover>
                 )}

@@ -7,10 +7,11 @@ export default async function Editgroupmemberstatus(value:promote,changeId:strin
     await connectDB()
     const groupconversation=await Groupconversationodel.findOne({_id:groupId})
     if(groupconversation){
-        if(groupconversation.createdBy===id){
+        if(groupconversation.createdBy.toString()===id){
             if(value==="admin"){
-                if(!groupconversation.admins.includes(changeId)){
-                    groupconversation.admins=groupconversation.admins.push(changeId)
+                if(!groupconversation.admins.map((data:any)=>data.toString()).includes(changeId)){
+                    groupconversation.admins.push(changeId)
+                    await groupconversation.save()
                     return "Success"
                 }
                 else{
@@ -18,8 +19,9 @@ export default async function Editgroupmemberstatus(value:promote,changeId:strin
                 }
             }
             else if(value==="member"){
-                if(groupconversation.admins.includes(changeId)){
-                    groupconversation.admins=groupconversation.admins.filter((data:string)=>data!==changeId)
+                if(groupconversation.admins.map((data:any)=>data.toString()).includes(changeId)){
+                    groupconversation.admins=groupconversation.admins.filter((data:any)=>data.toString()!==changeId)
+                    await groupconversation.save()
                     return "Success"
                 }
                 else{
@@ -27,16 +29,17 @@ export default async function Editgroupmemberstatus(value:promote,changeId:strin
                 }
             }
         }
-        else if(groupconversation.createdBy===changeId){
+        else if(groupconversation.createdBy.toString()===changeId){
             return "Success"
         }
-        else if(groupconversation.admins.includes(id)){
-            if(groupconversation.admins.includes(changeId)){
+        else if(groupconversation.admins.map((data:any)=>data.toString()).includes(id)){
+            if(groupconversation.admins.map((data:any)=>data.toString()).includes(changeId)){
                 return "Success"
             }
             else{
                 if(value==="admin"){
-                    groupconversation.admins=groupconversation.admins.push(changeId)
+                    groupconversation.admins.push(changeId)
+                    await groupconversation.save()
                     return "Success"
                 }
                 else if(value==="member"){
@@ -44,7 +47,7 @@ export default async function Editgroupmemberstatus(value:promote,changeId:strin
                 }
             }
         }
-        else if(!groupconversation.admins.includes(id)){
+        else if(!groupconversation.admins.map((data:any)=>data.toString()).includes(id)){
             return "Success"
         }
     }

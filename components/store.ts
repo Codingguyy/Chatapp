@@ -214,6 +214,7 @@ type grouptypingonline={
     setchangestatus:(value:"member"|"admin",id:string)=>void,
     setchangetypingstatus:(value:boolean,id:string)=>void,
     setchangeonlinestatus:(value:boolean,id:string)=>void,
+    setresetlist:()=>void,
 }
 type reloadvrythng={
     Grpexistlist:boolean,
@@ -533,7 +534,8 @@ export const Grouptypingonline=create<grouptypingonline>((set)=>({
     setchangestatus:(value,id)=>set((v)=>({list:v.list.map(data=>data.id===id?{...data,status:value}:data)})),
     setremovelist:(value)=>set((v)=>({list:v.list.filter(data=>data.id!==value)})),
     setchangetypingstatus:(value,id)=>set((v)=>({list:v.list.map(data=>data.id===id?{...data,typing:value}:data)})),
-    setchangeonlinestatus:(value,id)=>set((v)=>({list:v.list.map(data=>data.id===id?{...data,online:value}:data)}))
+    setchangeonlinestatus:(value,id)=>set((v)=>({list:v.list.map(data=>data.id===id?{...data,online:value}:data)})),
+    setresetlist:()=>set({list:[]})
 }))
 export const Groupsettings=create<searchvalue>((set)=>({
     value:false,

@@ -134,6 +134,7 @@ export function socket(){
   const setgrouphasmore=Grouppagination.getState().sethasmore
   const setgroupuserseenmessageid=GroupuserseenmessageId.getState().setname
   const setgrouptypingonlinelist=Grouptypingonline.getState().setlist
+  const setresetgrouptypingonlinelist=Grouptypingonline.getState().setresetlist
   const setgrouptypingstatus=Grouptypingonline.getState().setchangetypingstatus
   const grouptypinglist=Grouptypingonline.getState().list
   const setreloadgrpexistlist=Reloadeverything.getState().setgrpexistlist
@@ -344,6 +345,7 @@ export function socket(){
   function handlegroupconversation(group:groupconversation,groupmessages:groupconversations[]){
     setaddgroupconversations(groupmessages)
     setaddgrouppicked(group)
+    setresetgrouptypingonlinelist()
     setparamkey(group.groupId)
   }
   function handlegroupsendmessagetoast(value:string){
@@ -385,6 +387,23 @@ export function socket(){
       setremovemembersearchgroupexistlist(id,groupId)
       setremovegroupsendrequest(groupId,id)
       setremovegrouprecieverequest(groupId,id)
+     }
+  }
+  function handlekickmember(id:string,groupId:string,message:string){
+     if(id===UsercurrentId.getState().name){
+        setremovegroupexistlist(groupId)
+        setremovesearchgroupexist(groupId)
+        setremovegroupsendrequest(groupId,id)
+        setremovegrouprecieverequest(groupId,id)
+        toast.error(message)
+     }
+     else{
+      setremovemembergroupexistlist(id,groupId)
+      if(groupId===Grouppicked.getState().group.groupId){
+      setremovemembergrouppicked(id)
+      }
+      setremovemembersearchgroupexistlist(id,groupId)
+      toast.success(message)
      }
   }
   function handledeletegroupleave(id:string,groupId:string){
@@ -451,11 +470,8 @@ export function socket(){
     toast.error(message)
   }
   function handlegrouptypingonlinelist(list:grouponlinetyping,groupId:string){
-    console.log(list,groupId,grouppicked)
     if(Grouppicked.getState().group.groupId===groupId){
-      console.log(list)
-      if(!Grouptypingonline.getState().list.some(data=>data.id===list.id))
-    setgrouptypingonlinelist(list)
+      setgrouptypingonlinelist(list)
     }
   }
   function handlegroupmessagestatuschange(groupId:string,messageId:string,status:grpconversations){
@@ -638,10 +654,6 @@ export function socket(){
     console.log("triggering typing")
     handletypingonetooneconversation(id,typing)
   }
-  if(event==="user:status:onetooneconversation"){
-    const {id,online}=payload
-    handleuserstatusonetooneconversation(id,online)
-  }
   if(event==="message:response:loadmore:conversations"){
     const {data}=payload
     console.log(data)
@@ -820,12 +832,19 @@ export function socket(){
       handlechangememberstatus(promoteId,status,name,extramessage)
     }
   }
+    if(event==="request:response:kickmember:group"){
+      const {Success,message,groupId,id}=payload
+      if(!Success){
+        toast.error(message)
+      }
+      else{
+        handlekickmember(id,groupId,message)
+      }
+    }
     if(event==="request:response:leavegroup:group"){
-      const {id,deletee,admin,groupId}=payload
-      if(admin){
-        if(deletee){
-          handledeletegroupleave(id,groupId)
-        }
+      const {id,deletee,groupId}=payload
+      if(deletee){
+        handledeletegroupleave(id,groupId)
       }
       else{
         handlememberleavegroup(id,groupId)

@@ -49,6 +49,7 @@ import Creategrouprequest from '@/actions/creategrouprequest'
 import Markgrouprequeststatus from '@/actions/markgrouprequeststatus'
 import Editgroupmemberstatus from '@/actions/editgroupmemberstatus'
 import Markgroupblockmember from '@/actions/markgroupblockmember'
+import Editgroupkickmember from '@/actions/editgroupkickmember'
 import Editgroupname from '@/actions/editgroupname'
 import Editgroupsettings from '@/actions/editgroupsettings'
 import Editgroupleave from '@/actions/editgroupleave'
@@ -650,6 +651,14 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
                 value.socket.send(JSON.stringify({event:"request:response:namechange:onetooneconversation",payload:{message:"Name changed",_id:id,name:name}}))
             }
         })
+        oneto1conversations.forEach((value)=>{
+            if(value.participants.includes(id)){
+                const partnerId=value.participants.filter(data=>data!==id)[0]
+                if(partnerId){
+                    sendmessage(partnerId,"request:response:namechange:onetooneconversation",{message:"Name changed",_id:id,name:name})
+                }
+            }
+        })
       }
     }
     function handlechangedescriptiononetooneconversation(description:string,_id:string){
@@ -657,6 +666,14 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
             if(value.socket.readyState===WebSocket.OPEN){
                 value.description=description
                 value.socket.send(JSON.stringify({event:"request:response:descriptionchange:onetooneconversation",payload:{_id:_id,description:description,message:"Description changed successfully"}}))
+            }
+        })
+        oneto1conversations.forEach((value)=>{
+            if(value.participants.includes(_id)){
+                const partnerId=value.participants.filter(data=>data!==_id)[0]
+                if(partnerId){
+                    sendmessage(partnerId,"request:response:descriptionchange:onetooneconversation",{_id:_id,description:description,message:"Description changed successfully"})
+                }
             }
         })
     }
@@ -1032,6 +1049,7 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
         if(group.members.find(data=>data.id===id)){
         if(group.admins.includes(id)){
             group.admins=[...group.admins].filter(data=>data!==id)
+            group.members=[...group.members].filter(data=>data.id!==id)
             if(group.members.length!==0){
             if(group.createdBy===id){
                 group.createdBy=group.members[0].id
@@ -1039,7 +1057,6 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
             if(group.admins.length===0){
                 group.admins.push(group.members[0].id)
             }
-            group.members=[...group.members].filter(data=>data.id!==id)
             sendmessage(id,"request:response:leavegroup:group",{groupId:groupId,id:id,admin:true,deletee:false})
             group.members.forEach((value)=>{
                 sendmessage(value.id,"request:response:leavegroup:group",{groupId:groupId,id:id,deletee:false})
@@ -1047,10 +1064,7 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
         }
         else{
             groupconversations.delete(groupId)
-            sendmessage(id,"request:response:leavegroup:group,group",{groupId:groupId,id:id,deletee:true})
-            group.members.forEach((value)=>{
-                sendmessage(value.id,"request:response:leavegroup:group",{groupId:groupId,id:id,deletee:true})
-            })
+            sendmessage(id,"request:response:leavegroup:group",{groupId:groupId,id:id,deletee:true})
         }
         }
         else{
@@ -1196,7 +1210,6 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
         }
   }
   function handlegrouptypingonline(groupId:string,id:string,name:string,value:boolean){
-        const list:grouponlinetyping[]=[]
         const group=groupconversations.get(groupId)
         if(group){
             const members=group.members
@@ -1207,6 +1220,15 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
                     sendmessage(value.id,"request:response:grouptypingonline:group",{memberstatus:groupmember,groupId:groupId})
                 }
             })
+            if(value){
+                members.forEach((m)=>{
+                    if(m.id!==id){
+                        const isonline=(userlist.get(m.id)?.size||0)>0
+                        const membersnapshot:grouponlinetyping={name:m.name,id:m.id,status:admins.includes(m.id)?"admin":"member",online:isonline,typing:false}
+                        sendmessage(id,"request:response:grouptypingonline:group",{memberstatus:membersnapshot,groupId:groupId})
+                    }
+                })
+            }
         }
   }
   async function handlegroupmessagestatuschange(groupId:string,messageId:string,id:string,status:grpconversations){
@@ -1339,6 +1361,39 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
     }
     else{
         sendmessage(id,"request:response:block:group",{Success:false,message:"An error occurred",groupId:groupId})
+    }
+  }
+  async function handlekickmember(groupId:string,memberId:string,id:string){
+    const group=groupconversations.get(groupId)
+    if(group){
+        if(!group.admins.includes(id)){
+            sendmessage(id,"request:response:kickmember:group",{Success:false,message:"Only admins can kick members",groupId:groupId})
+            return
+        }
+        if(group.createdBy===memberId){
+            sendmessage(id,"request:response:kickmember:group",{Success:false,message:"You cannot kick the group creator",groupId:groupId})
+            return
+        }
+        if(group.admins.includes(memberId)&&group.createdBy!==id){
+            sendmessage(id,"request:response:kickmember:group",{Success:false,message:"Only the group creator can kick an admin",groupId:groupId})
+            return
+        }
+        const response=await Editgroupkickmember(groupId,memberId,id)
+        if(response==="Success"){
+            const kickedname=group.members.find(data=>data.id===memberId)?.name
+            group.admins=[...group.admins].filter(data=>data!==memberId)
+            group.members=[...group.members].filter(data=>data.id!==memberId)
+            sendmessage(memberId,"request:response:kickmember:group",{Success:true,groupId:groupId,id:memberId,message:"You were removed from the group"})
+            group.members.forEach((value)=>{
+                sendmessage(value.id,"request:response:kickmember:group",{Success:true,groupId:groupId,id:memberId,message:`${kickedname||"A member"} was removed from the group`})
+            })
+        }
+        else{
+            sendmessage(id,"request:response:kickmember:group",{Success:false,message:"An error occurred",groupId:groupId})
+        }
+    }
+    else{
+        sendmessage(id,"request:response:kickmember:group",{Success:false,message:"An error occurred",groupId:groupId})
     }
   }
   async function handlegroupsettingschange(settings:groupsettings,value:boolean,id:string,groupId:string){
@@ -1763,6 +1818,13 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
                 handlegroupblockmember(memberId,verify._id,groupId,action)
             }
         }
+        if(event==="request:kickmember:group"){
+            const {memberId,token,groupId}=payload
+            const verify=jsonwebtoken.verify(token,"secret") as {name:string,_id:string}
+            if(verify.name&&verify._id){
+                handlekickmember(groupId,memberId,verify._id)
+            }
+        }
         if(event==="request:groupsettings:group"){
             const {Settings,value,token,groupId}=payload
             const verify=jsonwebtoken.verify(token,"secret") as {name:string,_id:string}
@@ -1802,7 +1864,7 @@ function handleonetooneconversationrequestrejected(senderId:string,recieverId:st
             const {token}=payload
             const verify=jsonwebtoken.verify(token,"secret") as {name:string,_id:string}
             if(verify.name&&verify._id){
-                handlereloadconversationonetooneconversations(token._id)
+                handlereloadconversationonetooneconversations(verify._id)
             }
         }
     })

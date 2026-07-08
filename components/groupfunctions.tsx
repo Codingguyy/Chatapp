@@ -28,6 +28,7 @@ export default function Groupfunctions() {
     }
 
     useEffect(() => {
+        handlegrouptypingonline(true)
         const interval = setInterval(() => { handlegrouptypingonline(true) }, 20000)
         return () => clearInterval(interval)
     }, [])

@@ -4,7 +4,7 @@ import connectDB from '@/database/db_configure'
 export default async function Changename(id:string,name:string){
   await connectDB()
   if(id&&name){
-    const check=await Userodel.findOne({name:name})
+    const check=await Userodel.findOne({name:name,_id:{$ne:id}})
     if(check){
         return "Name already taken"
     }
